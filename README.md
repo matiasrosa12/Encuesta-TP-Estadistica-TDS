@@ -33,16 +33,15 @@ python3 -m http.server 8000
 
 y entrá a http://localhost:8000.
 
-## Modo prueba y modo real
+## Modos
 
-Todo se maneja desde `js/config.js`:
+Todo se maneja desde `js/config.js`, con `MODO`:
 
-- `MODO: "prueba"` (por defecto): no envía nada. Los cupos se simulan en el navegador, al final se muestra el JSON que recibiría la API y abajo aparece un panel para llenar cupos y probar el aviso.
-- `MODO: "real"`: envía cada respuesta con un POST a `API_URL`, con el `TOKEN` del equipo y `VERSION_FORMULARIO`.
+- `"local"` (por defecto): no envía nada. Los cupos se simulan en el navegador, al final se muestra el JSON que recibiría la API y abajo aparece un panel para llenar cupos y probar el aviso.
+- `"T"`: prueba piloto contra la API de la cátedra. Se guarda con `Modo: "T"` y no cuenta para los cupos reales.
+- `"P"`: encuesta real. Es el modo que va en el QR.
 
-Para el control de cupos en modo real, `CONTEO_URL` tiene que devolver `{"cantidad": N}` para `?carrera=...&anio=...`. Si queda vacío, no se controlan cupos.
-
-`config.js` es público: cualquiera que abra la página puede verlo. El token de envío puede ir ahí, pero el acceso de lectura de la API no.
+Los cupos se controlan con `POST /controlar_cantidades/1`, que cuenta las respuestas por `ID_Grupo`, `Modo`, `Carrera` y `Curso`. Las respuestas en `T` no ocupan cupos de `P`.
 
 ## Publicarlo con GitHub Pages
 
@@ -52,26 +51,27 @@ Para el control de cupos en modo real, `CONTEO_URL` tiene que devolver `{"cantid
 
 ## Datos del envío
 
+`POST /guardar_encuesta/1` con los campos de la API. Las respuestas van como enteros según el libro de códigos de `js/config.js` (`CODIGOS`).
+
 ```json
 {
-  "token": "TOKEN_DEL_EQUIPO",
-  "version_formulario": 1,
-  "respuestas": {
-    "carrera_referencia": "psicopedagogia",
-    "anio_cursada": "2",
-    "cursa_otra_carrera": "no",
-    "claridad_promocion": "algo",
-    "claridad_final": "poco",
-    "conoce_materias_promocion": "algunas",
-    "canales_informacion": ["docente", "companeros"],
-    "canal_principal": "docente",
-    "anticipacion_info": "primeras_2_semanas",
-    "situacion_promocion": "sin_final",
-    "situacion_nota_intermedia": "promociona",
-    "situacion_vigencia": "no_sabe",
-    "dificultad_principal": null
-  }
+  "ID_Grupo": 1,
+  "Modo": "P",
+  "Carrera": "psicopedagogia",
+  "Curso": "2",
+  "Otra_Carrera": "no",
+  "Claridad_Promocion": 3,
+  "Claridad_Final": 2,
+  "Conoces_Materias_PD": 2,
+  "Informacion": ["docente", "companeros"],
+  "Cuando_Recibiste_Informacion": 2,
+  "S1": 1,
+  "S2": 1,
+  "S3": 9,
+  "Dificultad": 2
 }
 ```
 
-Los códigos de cada campo están en el diccionario de datos de la Entrega 1.
+- `Informacion` (P7): el primer elemento es el canal principal (P8). "No me informé por ningún medio" se envía como `[]`.
+- `S1`, `S2`, `S3` (P10 a P12): 9 = "No sé". Correctas: S1 = 1, S2 = 2, S3 = 3.
+- `Dificultad` (P13): obligatoria, códigos 1 a 6.

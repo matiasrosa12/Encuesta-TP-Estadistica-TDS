@@ -7,7 +7,6 @@ const marcados = (nombre) =>
 
 const form = $("f");
 const pregunta = (nombre) => document.querySelector(`fieldset[data-q="${nombre}"]`);
-const esPrueba = CONFIG.MODO === "prueba";
 
 let carrera = null;
 let anio = null;
@@ -148,29 +147,39 @@ form.addEventListener("change", (e) => {
   if (e.target.name === "canales_informacion") actualizarCanales(e);
 });
 
-function armarRespuestas() {
-  const canales = marcados("canales_informacion");
-  const medios = canales.filter((v) => v !== "ninguno");
-  let canalPrincipal;
-  if (canales.includes("ninguno")) canalPrincipal = "no_corresponde";
-  else if (medios.length === 1) canalPrincipal = medios[0];
-  else canalPrincipal = marcados("canal_principal")[0];
+// Arma el registro con los nombres y códigos de la API.
+function armarRegistro() {
+  // P7: "ninguno" se envía como lista vacía.
+  let medios = marcados("canales_informacion").filter((v) => v !== "ninguno");
+  // P8: la API no tiene un campo aparte; el canal principal va primero en la lista.
+  if (medios.length >= 2) {
+    const principal = marcados("canal_principal")[0];
+    medios = [principal, ...medios.filter((v) => v !== principal)];
+  }
+  const codigo = (tabla, nombre) => CODIGOS[tabla][marcados(nombre)[0]];
 
   return {
-    carrera_referencia: carrera,
-    anio_cursada: anio,
-    cursa_otra_carrera: marcados("cursa_otra_carrera")[0],
-    claridad_promocion: marcados("claridad_promocion")[0],
-    claridad_final: marcados("claridad_final")[0],
-    conoce_materias_promocion: marcados("conoce_materias_promocion")[0],
-    canales_informacion: canales,
-    canal_principal: canalPrincipal,
-    anticipacion_info: marcados("anticipacion_info")[0],
-    situacion_promocion: marcados("situacion_promocion")[0],
-    situacion_nota_intermedia: marcados("situacion_nota_intermedia")[0],
-    situacion_vigencia: marcados("situacion_vigencia")[0],
-    dificultad_principal: marcados("dificultad_principal")[0] ?? null,
+    ID_Grupo: CONFIG.ID_GRUPO,
+    Modo: esLocal ? "T" : CONFIG.MODO,
+    Carrera: carrera,
+    Curso: String(anio),
+    Otra_Carrera: marcados("cursa_otra_carrera")[0],
+    Claridad_Promocion: codigo("claridad", "claridad_promocion"),
+    Claridad_Final: codigo("claridad", "claridad_final"),
+    Conoces_Materias_PD: codigo("conoce_materias_promocion", "conoce_materias_promocion"),
+    Informacion: medios,
+    Cuando_Recibiste_Informacion: codigo("anticipacion_info", "anticipacion_info"),
+    S1: codigo("situacion_promocion", "situacion_promocion"),
+    S2: codigo("situacion_nota_intermedia", "situacion_nota_intermedia"),
+    S3: codigo("situacion_vigencia", "situacion_vigencia"),
+    Dificultad: codigo("dificultad_principal", "dificultad_principal"),
   };
+}
+
+function mensajeError(err) {
+  if (err.status === 429) return "Hubo muchos envíos seguidos. Esperá un minuto y tocá Enviar de nuevo.";
+  if (err.status === 422) return "La respuesta no pasó la validación de la API. Avisale a quien te dio el QR.";
+  return "No se pudo enviar. Revisá la conexión y tocá Enviar de nuevo.";
 }
 
 form.addEventListener("submit", async (e) => {
@@ -199,15 +208,15 @@ form.addEventListener("submit", async (e) => {
   try {
     // Segunda verificación: el cupo pudo completarse mientras la persona respondía.
     if (await cupoCompleto(carrera, anio)) return mostrar("full");
-    const enviado = await enviarRespuesta(armarRespuestas());
-    if (esPrueba) {
+    const enviado = await enviarRespuesta(armarRegistro());
+    if (esLocal) {
       $("json").textContent = JSON.stringify(enviado, null, 2);
       renderPanelCupos();
     }
     mostrar("done");
   } catch (err) {
     aviso.hidden = false;
-    aviso.textContent = "No se pudo enviar. Revisá la conexión y tocá Enviar de nuevo.";
+    aviso.textContent = mensajeError(err);
   } finally {
     botonOcupado($("send"), false);
   }
@@ -250,7 +259,12 @@ function renderPanelCupos() {
   );
 }
 
-if (esPrueba) {
+if (CONFIG.MODO === "T") $("avisoPiloto").hidden = false;
+
+// En la encuesta real no se ofrece responder de nuevo desde el mismo celular.
+if (CONFIG.MODO === "P") $("restart2").hidden = true;
+
+if (esLocal) {
   ["avisoPrueba", "textoPrueba", "json", "lab"].forEach((id) => ($(id).hidden = false));
   $("resetCupos").addEventListener("click", () => {
     guardarConteoPrueba({});

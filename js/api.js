@@ -1,7 +1,8 @@
 // Comunicación con la API de la cátedra.
-// En modo prueba todo se simula en el navegador con localStorage.
+// En modo "local" todo se simula en el navegador con localStorage.
 
 const CLAVE_PRUEBA = "encuesta-cupos-prueba";
+const esLocal = CONFIG.MODO === "local";
 
 function leerConteoPrueba() {
   try {
@@ -21,18 +22,41 @@ function guardarConteoPrueba(conteo) {
 
 const claveCupo = (carrera, anio) => carrera + "|" + anio;
 
-// Devuelve cuántas respuestas válidas tiene esa carrera y año.
-async function contarRespuestas(carrera, anio) {
-  if (CONFIG.MODO === "prueba") {
-    return leerConteoPrueba()[claveCupo(carrera, anio)] || 0;
+// POST a la API. Devuelve el JSON si salió bien; si no, lanza un error con el código HTTP.
+async function llamarApi(ruta, cuerpo) {
+  const res = await fetch(CONFIG.API_BASE + "/" + ruta + "/" + CONFIG.ID_RUTA, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify(cuerpo),
+  });
+  let datos = null;
+  try {
+    datos = await res.json();
+  } catch (e) {
+    // Respuesta sin JSON: se trata como error.
   }
-  if (!CONFIG.CONTEO_URL) return 0;
+  if (!res.ok || !datos || datos.success !== true) {
+    const err = new Error("La API respondió " + res.status);
+    err.status = res.status;
+    err.detalle = datos && datos.errors;
+    throw err;
+  }
+  return datos;
+}
 
-  const url = CONFIG.CONTEO_URL + "?carrera=" + encodeURIComponent(carrera) + "&anio=" + encodeURIComponent(anio);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("No se pudo consultar el cupo (" + res.status + ")");
-  const datos = await res.json();
-  return Number(datos.cantidad) || 0;
+// Devuelve cuántas respuestas hay guardadas para esa carrera y año.
+async function contarRespuestas(carrera, anio) {
+  if (esLocal) return leerConteoPrueba()[claveCupo(carrera, anio)] || 0;
+
+  const datos = await llamarApi("controlar_cantidades", {
+    ID_Grupo: CONFIG.ID_GRUPO,
+    Modo: CONFIG.MODO,
+    Carrera: carrera,
+    Curso: String(anio),
+  });
+  const cantidad = Number(datos.data && datos.data.cantidad);
+  if (!Number.isFinite(cantidad)) throw new Error("La API no devolvió la cantidad");
+  return cantidad;
 }
 
 async function cupoCompleto(carrera, anio) {
@@ -40,27 +64,15 @@ async function cupoCompleto(carrera, anio) {
   return cantidad >= CUPOS[carrera][anio];
 }
 
-// Envía una respuesta. Recibe el objeto "respuestas" del diccionario de datos.
-async function enviarRespuesta(respuestas) {
-  const cuerpo = {
-    token: CONFIG.TOKEN,
-    version_formulario: CONFIG.MODO === "prueba" ? 0 : CONFIG.VERSION_FORMULARIO,
-    respuestas,
-  };
-
-  if (CONFIG.MODO === "prueba") {
+// Guarda una encuesta. Recibe el registro con los campos de la API.
+async function enviarRespuesta(registro) {
+  if (esLocal) {
     const conteo = leerConteoPrueba();
-    const clave = claveCupo(respuestas.carrera_referencia, respuestas.anio_cursada);
+    const clave = claveCupo(registro.Carrera, registro.Curso);
     conteo[clave] = (conteo[clave] || 0) + 1;
     guardarConteoPrueba(conteo);
-    return cuerpo;
+    return registro;
   }
-
-  const res = await fetch(CONFIG.API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(cuerpo),
-  });
-  if (!res.ok) throw new Error("La API respondió " + res.status);
-  return cuerpo;
+  await llamarApi("guardar_encuesta", registro);
+  return registro;
 }
