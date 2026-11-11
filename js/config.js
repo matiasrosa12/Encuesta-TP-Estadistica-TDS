@@ -5,7 +5,7 @@ const CONFIG = {
   // "local": no envía nada. Simula los cupos en el navegador y muestra el JSON al final.
   // "T": prueba piloto contra la API de la cátedra (se guarda con Modo T, no cuenta para la muestra).
   // "P": encuesta real (Modo P). Usar este modo para el QR definitivo.
-  MODO: "local",
+  MODO: "T",
 
   // API de la cátedra.
   API_BASE: "https://apidemo.geoeducacion.com.ar/api/testing/tpf2026",
