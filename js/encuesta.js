@@ -259,7 +259,6 @@ function renderPanelCupos() {
   );
 }
 
-if (CONFIG.MODO === "T") $("avisoPiloto").hidden = false;
 
 // En la encuesta real no se ofrece responder de nuevo desde el mismo celular.
 if (CONFIG.MODO === "P") $("restart2").hidden = true;
