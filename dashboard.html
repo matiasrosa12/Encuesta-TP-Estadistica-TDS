@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard · Promoción y acreditación</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;800;900&family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="css/dashboard.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand"><span class="logo" aria-label="Instituto IDRA"><b>IDRA</b><span>INSTITUTO</span></span><span class="sub">Trabajo final<br>Estadística y Probabilidades</span></div>
+    <h1>¿Los estudiantes entienden cómo se aprueban sus materias?</h1>
+    <p class="lead">Encuesta sobre las condiciones de promoción y acreditación del Régimen Académico Marco, aplicada a estudiantes del Instituto Superior IDRA.</p>
+
+    <dl class="ficha">
+      <div><dt>Objetivo</dt><dd>Describir cuánto conocen y comprenden los estudiantes las condiciones de promoción y acreditación, y detectar necesidades de comunicación.</dd></div>
+      <div><dt>Población</dt><dd>337 estudiantes con cursada activa en 2026: Inicial (4.°), Psicopedagogía, Acompañamiento Terapéutico y Desarrollo de Software.</dd></div>
+      <div><dt>Muestreo</dt><dd>Estratificado por carrera y año, con asignación proporcional (muestra prevista: 76). Encuesta presencial con QR.</dd></div>
+      <div><dt>Período</dt><dd>Noviembre de 2026 (cierre: 18/11).</dd></div>
+      <div><dt>Respuestas</dt><dd id="fichaN">…</dd></div>
+    </dl>
+  </header>
+
+  <div class="filtros" role="group" aria-label="Filtrar por carrera">
+    <span class="flabel">Carrera</span>
+    <div class="seg" id="filtroCarrera"></div>
+    <span class="base" id="baseFiltro"></span>
+  </div>
+  <p class="fuente" id="fuente"></p>
+
+  <div id="pocos" class="aviso" hidden>Con menos de 5 respuestas no se muestran resultados, para que nadie pueda ser identificado. Elegí otra carrera o "Todas".</div>
+
+  <div id="contenido">
+    <section class="kpis" aria-label="Indicadores principales">
+      <div class="kpi"><span class="kv" id="kN">–</span><span class="kl">respuestas válidas</span><span class="kb" id="kNb"></span></div>
+      <div class="kpi"><span class="kv" id="kClar">–</span><span class="kl">dice tener bastante o muy claras las condiciones de promoción</span><span class="kb" id="kClarB"></span></div>
+      <div class="kpi"><span class="kv" id="kPunt">–</span><span class="kl">situaciones bien resueltas (mediana, de 3)</span><span class="kb" id="kPuntB"></span></div>
+      <div class="kpi alerta"><span class="kv" id="kS3">–</span><span class="kl">sabe hasta cuándo vale una cursada aprobada</span><span class="kb" id="kS3B"></span></div>
+    </section>
+
+    <section class="bloque" id="sec-muestra">
+      <h2>1. Muestra prevista y lograda</h2>
+      <p class="nota">La tabla muestra siempre a toda la institución, aunque haya un filtro activo.</p>
+      <div class="tbl"><table id="tablaMuestra"></table></div>
+    </section>
+
+    <section class="bloque">
+      <h2>2. Conocimiento declarado</h2>
+      <p class="lectura" id="lecturaDeclarado"></p>
+      <div class="grid">
+        <div class="card">
+          <h3>¿Qué tan claras tenés las condiciones? (P4 y P5)</h3>
+          <div class="leyenda" id="leyClaridad"></div>
+          <div class="chart" style="height:150px"><canvas id="chClaridad" role="img" aria-label="Distribución de la claridad declarada sobre promoción y examen final"></canvas></div>
+          <p class="stats" id="statsClaridad"></p>
+          <details><summary>Ver tabla de frecuencias</summary><div class="tbl" id="tClaridad"></div></details>
+        </div>
+        <div class="card">
+          <h3>¿Sabés cuáles de tus materias son de promoción directa? (P6)</h3>
+          <div class="chart" style="height:170px"><canvas id="chP6" role="img" aria-label="Conocimiento de las materias de promoción directa"></canvas></div>
+          <p class="base-c" id="baseP6"></p>
+          <details><summary>Ver tabla de frecuencias</summary><div class="tbl" id="tP6"></div></details>
+        </div>
+      </div>
+    </section>
+
+    <section class="bloque">
+      <h2>3. Comprensión comprobada</h2>
+      <p class="lectura" id="lecturaComprension"></p>
+      <div class="grid">
+        <div class="card">
+          <h3>Resultado en cada situación (P10 a P12)</h3>
+          <div class="leyenda" id="leySit"></div>
+          <div class="chart" style="height:190px"><canvas id="chSit" role="img" aria-label="Respuestas correctas, incorrectas y no sé en las tres situaciones"></canvas></div>
+          <p class="base-c" id="baseSit"></p>
+          <details><summary>Ver tabla de frecuencias</summary><div class="tbl" id="tSit"></div></details>
+        </div>
+        <div class="card">
+          <h3>Puntaje de comprensión (0 a 3 situaciones bien resueltas)</h3>
+          <div class="chart" style="height:190px"><canvas id="chPunt" role="img" aria-label="Distribución del puntaje de comprensión"></canvas></div>
+          <p class="stats" id="statsPunt"></p>
+          <details><summary>Ver tabla de frecuencias</summary><div class="tbl" id="tPunt"></div></details>
+        </div>
+        <div class="card ancho">
+          <h3>P12: ¿hasta qué mesa vale una cursada aprobada en 2026? (correcta: marzo de 2029)</h3>
+          <div class="chart" style="height:230px"><canvas id="chS3" role="img" aria-label="Opciones elegidas en la pregunta sobre la vigencia de la cursada"></canvas></div>
+          <p class="base-c" id="baseS3"></p>
+          <details><summary>Ver tabla de frecuencias</summary><div class="tbl" id="tS3"></div></details>
+        </div>
+      </div>
+    </section>
+
+    <section class="bloque">
+      <h2>4. Cómo se informan</h2>
+      <p class="lectura" id="lecturaCanales"></p>
+      <div class="grid">
+        <div class="card">
+          <h3>Medios por los que se informaron (P7, selección múltiple)</h3>
+          <div class="chart" style="height:230px"><canvas id="chCanales" role="img" aria-label="Porcentaje de estudiantes que usó cada medio"></canvas></div>
+          <p class="base-c" id="baseCanales"></p>
+          <details><summary>Ver tabla de frecuencias</summary><div class="tbl" id="tCanales"></div></details>
+        </div>
+        <div class="card">
+          <h3>Medio principal (P8)</h3>
+          <div class="chart" style="height:230px"><canvas id="chPrincipal" role="img" aria-label="Medio principal de información"></canvas></div>
+          <p class="base-c" id="basePrincipal"></p>
+          <details><summary>Ver tabla de frecuencias</summary><div class="tbl" id="tPrincipal"></div></details>
+        </div>
+        <div class="card">
+          <h3>¿Cuándo recibiste la información? (P9)</h3>
+          <div class="chart" style="height:230px"><canvas id="chCuando" role="img" aria-label="Momento en que recibieron la información"></canvas></div>
+          <p class="base-c" id="baseCuando"></p>
+          <details><summary>Ver tabla de frecuencias</summary><div class="tbl" id="tCuando"></div></details>
+        </div>
+        <div class="card">
+          <h3>Principal dificultad para entender cómo se aprueba (P13)</h3>
+          <div class="chart" style="height:230px"><canvas id="chDif" role="img" aria-label="Principal dificultad declarada"></canvas></div>
+          <p class="base-c" id="baseDif"></p>
+          <details><summary>Ver tabla de frecuencias</summary><div class="tbl" id="tDif"></div></details>
+        </div>
+      </div>
+    </section>
+
+    <section class="bloque">
+      <h2>5. Cruces</h2>
+      <div class="grid">
+        <div class="card">
+          <h3 id="tituloCruce1">Claridad sobre promoción, por carrera</h3>
+          <div class="leyenda" id="leyCruce1"></div>
+          <div class="chart" id="boxCruce1" style="height:220px"><canvas id="chCruce1" role="img" aria-label="Claridad declarada sobre promoción por grupo"></canvas></div>
+          <p class="lectura-c" id="lecturaCruce1"></p>
+          <details><summary>Ver tabla de contingencia</summary><div class="tbl" id="tCruce1"></div></details>
+        </div>
+        <div class="card">
+          <h3>Claridad declarada vs. situaciones bien resueltas</h3>
+          <div class="leyenda" id="leyCruce2"></div>
+          <div class="chart" style="height:220px"><canvas id="chCruce2" role="img" aria-label="Puntaje de comprensión según la claridad declarada"></canvas></div>
+          <p class="lectura-c" id="lecturaCruce2"></p>
+          <details><summary>Ver tabla de contingencia</summary><div class="tbl" id="tCruce2"></div></details>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="bloque texto">
+    <h2>6. Conclusiones, limitaciones y recomendaciones</h2>
+    <p class="nota">Redactadas con las 58 respuestas registradas al 18/11/2026. Los gráficos de arriba se actualizan con los datos de la API.</p>
+    <div class="grid">
+      <div class="card">
+        <h3>Conclusiones</h3>
+        <ul>
+          <li><b>Sentirse informado no es lo mismo que comprender.</b> 3 de cada 4 dicen tener claras las condiciones de promoción, pero solo 1 de cada 10 resolvió bien las tres situaciones.</li>
+          <li><b>Las reglas de promoción se entienden; la vigencia de la cursada, no.</b> P10 y P11 se respondieron bien en casi 9 de cada 10 casos. En P12 acertó el 12 %, el 40 % eligió "No sé" y la respuesta equivocada más elegida fue "diciembre de 2028".</li>
+          <li><b>La claridad declarada casi no anticipa la comprensión.</b> La mediana del puntaje es 2 en todos los niveles de claridad.</li>
+          <li><b>El docente es el canal casi exclusivo.</b> 8 de cada 10 se informaron por el docente; la página del instituto y el RAI casi no aparecen.</li>
+          <li><b>La información llega a tiempo.</b> 2 de cada 3 la recibieron en las primeras dos semanas de clase.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Limitaciones</h3>
+        <ul>
+          <li>Se lograron 58 de 76 respuestas previstas: el margen de error pasa de ±10 a ±12 puntos. El relevamiento se cerró el 18/11/2026 por indicación del docente, y 3 estudiantes que recibieron el QR no pudieron responder por falta de internet (tasa de respuesta estimada: 95 %).</li>
+          <li>1.° año de Acompañamiento Terapéutico quedó muy por debajo de su cupo (5 de 21), así que está subrepresentado. Ponderando por la matrícula, las conclusiones no cambian.</li>
+          <li>Solo se encuestó a quienes estaban presentes el día de la visita.</li>
+          <li>Inicial (3 respuestas) y otros años con menos de 5 casos no se interpretan por separado.</li>
+          <li>Las respuestas 30 y 31 son idénticas; podrían ser un duplicado, pero no se puede confirmar en una encuesta anónima y se conservan.</li>
+          <li>Una asociación entre variables no prueba causalidad, y una encuesta no demuestra por sí sola el cumplimiento de la normativa.</li>
+        </ul>
+      </div>
+      <div class="card ancho">
+        <h3>Recomendaciones</h3>
+        <ul>
+          <li>Comunicar la vigencia de la cursada con un ejemplo con fechas ("si aprobás la cursada en 2026, podés rendir hasta las mesas de marzo de 2029"), no como "ocho turnos".</li>
+          <li>Reforzar ese contenido a través de los docentes, que son el canal que efectivamente llega, al inicio de cada cuatrimestre y antes de cada turno de examen.</li>
+          <li>Publicar en la página del instituto una síntesis breve del RAI con ejemplos, y que los docentes la indiquen como referencia.</li>
+          <li>Unificar criterios entre materias y docentes: "información contradictoria" y "criterios que cambian" suman más del 40 % de las dificultades.</li>
+          <li>Repetir la medición con 1.° año de Acompañamiento Terapéutico completo.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer class="fine">
+    <p>Fuente: encuesta propia, API de la cátedra (ID_Grupo 1, Modo P). Porcentajes sobre respuestas válidas; la base se indica en cada gráfico. En P7 un estudiante puede marcar varios medios, por eso los porcentajes suman más de 100 %. Las escalas ordinales se resumen con mediana y moda, no con promedio.</p>
+    <p>Trabajo de estudiantes del Instituto Superior IDRA para Estadística y Probabilidades. No es una comunicación oficial del Instituto. Herramientas de IA usadas como apoyo y declaradas en la entrega.</p>
+  </footer>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>
